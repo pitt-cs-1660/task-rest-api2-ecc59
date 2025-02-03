@@ -91,12 +91,21 @@ async def update_task(task_id: int, task_data: TaskCreate):
     """
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+
+    # If task does not exist, raise a 404 error
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     cursor.execute(
         "UPDATE tasks SET title = ?, description = ?, completed = ? WHERE id = ?",
         (task_data.title, task_data.description, task_data.completed, task_id),
     )
     conn.commit()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    updated_row = cursor.fetchone()
     conn.close()
+    return TaskRead(id=updated_row[0], title=updated_row[1], description=updated_row[2], completed=updated_row[3])
     #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
 
 
@@ -114,7 +123,13 @@ async def delete_task(task_id: int):
     """
     conn = get_db_connection()
     cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
     conn.commit()
     conn.close()
+    return {"message": f"Task {task_id} deleted successfully"}
     #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
