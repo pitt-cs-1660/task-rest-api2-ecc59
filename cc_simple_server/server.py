@@ -36,12 +36,20 @@ async def create_task(task_data: TaskCreate):
     Returns:
         TaskRead: The created task data
     """
+    task_data_dict = task_data.dict()
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO tasks (title, description, completed) VALUES (?, ?, ?)",
-        (task_data.title, task_data.description, task_data.completed))
+    cursor.execute(
+        "INSERT INTO tasks (title, description, completed) VALUES (?, ?, ?)",
+        (task_data_dict["title"], task_data_dict["description"], task_data_dict["completed"]),
+    )
     conn.commit()
+    task_id = cursor.lastrowid
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
     conn.close()
+    return TaskRead(id=row[0], title=row[1], description=row[2], completed=row[3])
+   
     #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
 
 
@@ -61,8 +69,9 @@ async def get_tasks():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM tasks")
     rows = cursor.fetchall()
-    conn.close()
-    return rows
+    print(rows)
+    tasks = [TaskRead(id=row[0], title=row[1], description=row[2], completed=row[3]) for row in rows]
+    return tasks
 
     #raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
 
